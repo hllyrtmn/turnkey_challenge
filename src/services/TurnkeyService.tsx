@@ -1,9 +1,13 @@
-import { DEFAULT_ETHEREUM_ACCOUNTS, Turnkey } from "@turnkey/sdk-server";
+import { DEFAULT_ETHEREUM_ACCOUNTS, Turnkey, TurnkeyApiClient } from "@turnkey/sdk-server";
+import { Turnkey as TurnkeyBrowser,TurnkeyPasskeyClient } from "@turnkey/sdk-browser";
 
 class TurnkeyService{
+    
     private static instance: TurnkeyService;
-    private turnkey: any;
-    public apiClient: any;
+    private turnkey: Turnkey;
+    public apiClient: TurnkeyApiClient;
+    private turnkeyBrowser:TurnkeyBrowser;
+    public passkeyClient:TurnkeyPasskeyClient;
     constructor(){
         this.turnkey = new Turnkey({
             apiBaseUrl: "https://api.turnkey.com",
@@ -11,13 +15,13 @@ class TurnkeyService{
             apiPublicKey: "027b444ad8fe3a9a9cdf02f4656c1938b613b3c125bb70b565a1cb3ac704f35969",
             defaultOrganizationId: "65d05a99-c8f4-4ab8-8f63-3588121e45a1"
         });
-        /*this.turnkey = new Turnkey({
+        this.turnkeyBrowser = new TurnkeyBrowser({
             apiBaseUrl: "https://api.turnkey.com",
-            apiPrivateKey: "9d3df90bbce48d0c985aaf84ed6b661733e859bef7b192653849f24760bceb1b",
-            apiPublicKey: "03375b3122786f5a9c0a7f062fbd2bd12e2f87462664aae4e188c5861ad0792a52",
-            defaultOrganizationId: "324e8c1e-dc1f-4470-88a6-72bf22d8d52c"
-        });*/
+            defaultOrganizationId: "65d05a99-c8f4-4ab8-8f63-3588121e45a1",
+            rpId:"localhost"
+        });
         this.apiClient = this.turnkey.apiClient();
+        this.passkeyClient = this.turnkeyBrowser.passkeyClient();
     }   
     public static getInstance(): TurnkeyService {
         if (!TurnkeyService.instance) {
@@ -28,7 +32,7 @@ class TurnkeyService{
     async getOrganizationID(): Promise<string | null> {
         try {
           const organizationData = await this.apiClient.getOrganization();
-          return organizationData.organizationData.organizationId;
+          return organizationData.organizationData.organizationId ? organizationData.organizationData.organizationId : "";
         } catch (error) {
           return "Error getting organization ID: " + error;
         }
@@ -36,7 +40,7 @@ class TurnkeyService{
     async getUserName(): Promise<string |null>{
         try{
             const organizationData = await this.apiClient.getOrganization();
-            return organizationData.organizationData.name
+            return organizationData.organizationData.name ? organizationData.organizationData.name : ""
         }catch(error){
             return "Error getting user name: " + error;
         }
@@ -46,13 +50,32 @@ class TurnkeyService{
             return subOrgIds.organizationIds as Array<string>;
     }
     async createSubOrg(subOrgName:string,userName:string,userEmail:string):Promise<string |null>{
+        const credential = await this.passkeyClient.createUserPasskey({
+            publicKey: {
+                user: {
+                  name: "testName",
+                  displayName: "TestName"
+              }
+              }
+        })
         const subOrganizationConfig = {
             subOrganizationName: subOrgName,
             rootUsers: [{
               userName: userName,
               userEmail: userEmail,
-              apiKeys: [],
-              authenticators: []
+              apiKeys: [
+                {
+                    apiKeyName: subOrgName,
+                    publicKey: "027b444ad8fe3a9a9cdf02f4656c1938b613b3c125bb70b565a1cb3ac704f35969",
+                }
+              ],
+              authenticators: [
+                {
+                    authenticatorName: "deneme",
+                    challenge: credential.encodedChallenge,
+                    attestation: credential.attestation
+                  }
+              ]
             }],
             rootQuorumThreshold: 1,
             wallet: {
@@ -61,11 +84,49 @@ class TurnkeyService{
             }
           };
         const request = await this.apiClient.createSubOrganization(subOrganizationConfig)
-
+        
+        
+        console.log(request)
         return request.activity.status;
     }
-    createSubOrgUser(organizationId:string,userName:string,userEmail:string){
-        return "Kayit basarili"
+    async createSubOrgUser(organizationId:string,userName:string,userEmail:string):Promise<string |null>{
+        this.turnkeyBrowser = new TurnkeyBrowser({
+            apiBaseUrl: "https://api.turnkey.com",
+            defaultOrganizationId: organizationId,
+            rpId:"localhost"
+        });
+        this.passkeyClient = this.turnkeyBrowser.passkeyClient();
+        
+        const credential = await this.passkeyClient.createUserPasskey({
+            publicKey: {
+                user: {
+                  name: userName+"deneme",
+                  displayName: "TestName"
+              }
+              }
+        })
+        const user = {
+            type: "ACTIVITY_TYPE_CREATE_USERS_V2",
+            users: [
+            {
+                userName: userName,
+                userEmail: userEmail,
+                apiKeys: [
+                ],
+                authenticators: [
+                    {
+                        authenticatorName: "deneme",
+                        challenge: credential.encodedChallenge,
+                        attestation: credential.attestation
+                      }
+                ],
+                userTags: []
+            }]}
+            
+        const request = await this.apiClient.createUsers(user)
+        //const currentUser = await this.apiClient.createApiKeys()
+        //console.log(currentUser)
+        return request.userIds.toString()
     }
 }
 export default TurnkeyService;

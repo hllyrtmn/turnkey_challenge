@@ -11,23 +11,23 @@ import Menu from './components/Menu/app';
 const App: React.FC = () => {
   return (
     <Router>
-<div className="container-fluid p-3">
-  <div className="row m-3">
-    <div className="col-sm-6">
-    <Menu/>
-    </div>
-    <div className="col-sm-6">
-    <main role="main" className="col-md-9 ml-sm-auto col-lg-10 px-4">
-            <Routes>
-              <Route path="/" element={<GetOrganizationID />} />
-              <Route path="/create-sub-organization" element={<CreateSubOrganization />} />
-              <Route path="/list-suborg" element={<ListSuborg />} />
-              <Route path="/create-suborg-user" element={<CreateSuborgUser />} />
-            </Routes>
-          </main>
+      <div className="container-fluid p-3">
+        <div className="row m-3">
+          <div className="col-sm-6">
+            <Menu/>
           </div>
-  </div>
-</div>
+          <div className="col-sm-6">
+            <main role="main" className="col-md-9 ml-sm-auto col-lg-10 px-4">
+                  <Routes>
+                    <Route path="/" element={<GetOrganizationID />} />
+                    <Route path="/create-sub-organization" element={<CreateSubOrganization />} />
+                    <Route path="/list-suborg" element={<ListSuborg />} />
+                    <Route path="/create-suborg-user" element={<CreateSuborgUser />} />
+                  </Routes>
+            </main>
+          </div>
+        </div>
+      </div>
     </Router>
   );
 };

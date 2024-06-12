@@ -1,7 +1,6 @@
 import React from 'react'
 import TurnkeyService from '../../services/TurnkeyService';
 
-
 interface State {
   result: string | null;
   subOrgName: string;
@@ -73,5 +72,7 @@ class CreateSubOrganization extends React.Component<{}, State>  {
           <button className='btn btn-info' onClick={this.createSubOrganization}>Create</button>
           <small>{this.state.result}</small>
         </div>
-        );}}
-    export default CreateSubOrganization
+        );
+  }
+}
+  export default CreateSubOrganization
